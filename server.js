@@ -13,32 +13,43 @@ app.use(express.static('public'));
 
 // Health check
 app.get('/api/health', (req, res) => {
-  const key = process.env.SPEECHACE_KEY || '';
+  let key = process.env.SPEECHACE_KEY || '';
+  // Decode to check real length
+  let decoded = key;
+  let prev = '';
+  while (prev !== decoded) {
+    prev = decoded;
+    try { decoded = decodeURIComponent(decoded); } catch(e) { break; }
+  }
   res.json({
     status: 'ok',
-    speechace_key_set: !!key,
-    key_length: key.length,
-    key_preview: key ? key.substring(0, 10) + '...' : 'NOT SET'
+    key_set: !!key,
+    raw_length: key.length,
+    decoded_length: decoded.length,
+    key_preview: decoded.substring(0, 15) + '...'
   });
 });
 
 // SpeechAce proxy
 app.post('/api/speechace', upload.single('user_audio_file'), async (req, res) => {
-  // Get key — try env first, then header
   let saKey = process.env.SPEECHACE_KEY || req.headers['x-speechace-key'] || '';
 
-  // URL decode if needed
-  try { saKey = decodeURIComponent(saKey); } catch(e) {}
+  // Fully decode — handle double/triple encoding
+  let prev = '';
+  while (prev !== saKey) {
+    prev = saKey;
+    try { saKey = decodeURIComponent(saKey); } catch(e) { break; }
+  }
   saKey = saKey.trim();
 
-  console.log('SpeechAce call — key length:', saKey.length, '— text:', req.body.text);
+  console.log('Key decoded length:', saKey.length, '| preview:', saKey.substring(0,15));
+  console.log('Text:', req.body.text);
 
   if (!saKey) {
-    return res.json({ status: 'error', success: false, message: 'SPEECHACE_KEY not set in environment' });
+    return res.json({ status: 'error', message: 'SPEECHACE_KEY not set' });
   }
-
   if (!req.file) {
-    return res.json({ status: 'error', success: false, message: 'No audio file received' });
+    return res.json({ status: 'error', message: 'No audio file received' });
   }
 
   const text = (req.body.text || 'hello').trim();
@@ -53,35 +64,37 @@ app.post('/api/speechace', upload.single('user_audio_file'), async (req, res) =>
     fd.append('question_info', 'u1/q1');
     fd.append('include_unknown_words', '0');
 
-    // Use api5 endpoint (AP South — matches your subscription)
-    const url = `https://api5.speechace.com/api/scoring/text/v9/json?key=${encodeURIComponent(saKey)}&dialect=en-us&user_id=user1`;
+    // API endpoint — AP South (your subscription region)
+    const url = 'https://api5.speechace.com/api/scoring/text/v9/json?key='
+      + encodeURIComponent(saKey)
+      + '&dialect=en-us&user_id=user1';
 
-    console.log('Calling SpeechAce URL:', url.substring(0, 80) + '...');
+    console.log('Calling SpeechAce...');
 
     const r = await fetch(url, {
       method: 'POST',
       body: fd,
-      headers: { ...fd.getHeaders() },
-      timeout: 30000
+      headers: { ...fd.getHeaders() }
     });
 
     const raw = await r.text();
-    console.log('SpeechAce raw response (first 200):', raw.substring(0, 200));
+    console.log('Response (200 chars):', raw.substring(0, 200));
 
     let data;
     try { data = JSON.parse(raw); }
-    catch(e) { return res.json({ status: 'error', success: false, message: 'SpeechAce non-JSON response: ' + raw.substring(0, 100) }); }
+    catch(e) {
+      return res.json({ status: 'error', message: 'Bad response: ' + raw.substring(0, 150) });
+    }
 
     res.json(data);
 
   } catch (e) {
-    console.error('SpeechAce error:', e.message);
-    res.json({ status: 'error', success: false, message: e.message });
+    console.error('Fetch error:', e.message);
+    res.json({ status: 'error', message: e.message });
   }
 });
 
-// Config test
 app.post('/api/config', (req, res) => res.json({ success: true }));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log('Server on port ' + PORT));
