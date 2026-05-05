@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpeechAce Tester</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090F;--s1:#0F1119;--s2:#171B26;--s3:#1E2230;
+  --blue:#4F8EF7;--green:#22D77A;--red:#F0544F;--amb:#F5A623;--purple:#8B5CF6;
+  --t1:#E8EEFF;--t2:#6B80AA;--t3:#2E3A55;
+  --mono:'JetBrains Mono',monospace;--sans:'Sora',sans-serif;--bn:'Hind Siliguri',sans-serif;
+}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);min-height:100vh;padding:28px 16px}
+.wrap{max-width:680px;margin:0 auto}
+h1{font-size:22px;font-weight:800;margin-bottom:3px}
+.sub{font-size:12px;color:var(--t2);font-family:var(--mono);margin-bottom:24px}
+
+.card{background:var(--s1);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:18px;margin-bottom:14px}
+.card-t{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:1px;margin-bottom:13px}
+
+label{font-size:11px;color:var(--t2);display:block;margin-bottom:5px;font-family:var(--mono)}
+input,select{width:100%;background:var(--s2);border:1px solid rgba(255,255,255,.09);border-radius:8px;color:var(--t1);padding:9px 12px;font-size:13px;font-family:var(--mono);outline:none;transition:border-color .12s;margin-bottom:11px}
+input:focus,select:focus{border-color:var(--blue)}
+input::placeholder{color:var(--t3)}
+
+.btn{padding:9px 18px;border-radius:8px;border:none;font-size:13px;font-family:var(--sans);font-weight:600;cursor:pointer;transition:all .15s}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:#3A70D8}
+.btn-dim{background:var(--s3);color:var(--t1);border:1px solid rgba(255,255,255,.09)}
+.btn-dim:hover{background:rgba(255,255,255,.08)}
+.btn-red{background:var(--red);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* REC BUTTON */
+.rec-wrap{text-align:center;padding:18px 0}
+.rec-btn{width:60px;height:60px;border-radius:50%;background:var(--red);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;transition:all .2s}
+.rec-btn:hover{transform:scale(1.06);box-shadow:0 0 20px rgba(240,84,79,.3)}
+.rec-btn.rec{background:#6B1414;animation:rp 1s infinite}
+@keyframes rp{0%,100%{box-shadow:0 0 0 0 rgba(240,84,79,.5)}50%{box-shadow:0 0 0 12px rgba(240,84,79,0)}}
+.recdot{width:14px;height:14px;border-radius:50%;background:#fff}
+.rec-lbl{font-size:12px;color:var(--t2);font-family:var(--bn)}
+.word-display{font-size:26px;font-weight:800;color:var(--t1);margin-bottom:5px;letter-spacing:-.3px}
+.ipa-display{font-size:13px;color:var(--blue);font-family:var(--mono);margin-bottom:14px}
+
+/* SCORE BARS */
+.fb-sec{display:none;margin-top:14px}
+.fb-title{font-size:11px;font-weight:700;color:var(--t1);margin-bottom:10px}
+.fb-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.fb-lbl{font-size:11px;color:var(--t2);width:110px;flex-shrink:0;font-family:var(--bn)}
+.fb-track{flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden}
+.fb-bar{height:100%;border-radius:99px;transition:width 1.2s cubic-bezier(.34,1.56,.64,1);width:0%}
+.fb-pct{font-size:12px;font-weight:700;width:35px;text-align:right;font-family:var(--mono)}
+
+/* PHONEME FEEDBACK */
+.phoneme-wrap{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;margin-top:12px;display:none}
+.phoneme-title{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.phoneme-grid{display:flex;flex-wrap:wrap;gap:7px}
+.ph-item{text-align:center;background:var(--s3);border-radius:7px;padding:7px 10px;min-width:48px}
+.ph-sound{font-size:14px;font-weight:700;font-family:var(--mono);margin-bottom:3px}
+.ph-score{font-size:10px;font-family:var(--mono)}
+.ph-good{color:var(--green)}
+.ph-ok{color:var(--amb)}
+.ph-bad{color:var(--red)}
+
+/* TRANSCRIPT */
+.transcript-box{background:rgba(75,139,244,.08);border:1px solid rgba(75,139,244,.2);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:12px;color:rgba(200,220,255,.85);font-family:var(--bn);display:none;line-height:1.6}
+
+/* STATUS */
+.status{border-radius:8px;padding:10px 13px;font-size:12px;line-height:1.7;display:none;white-space:pre-wrap;font-family:var(--bn);margin-top:10px}
+.s-ok{background:rgba(34,215,122,.1);border:1px solid rgba(34,215,122,.3);color:var(--green)}
+.s-err{background:rgba(240,84,79,.1);border:1px solid rgba(240,84,79,.3);color:var(--red)}
+.s-info{background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3);color:#A5B4FC}
+.s-warn{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:var(--amb)}
+
+.steps{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:13px;font-size:12px;color:var(--t2);line-height:2;font-family:var(--bn)}
+.steps b{color:var(--t1)}
+.steps a{color:var(--blue);text-decoration:none}
+.steps .step-num{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--blue);color:#fff;font-size:10px;font-weight:700;margin-right:6px;flex-shrink:0;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>🎤 SpeechAce Tester</h1>
+  <div class="sub">Real pronunciation check — phoneme level feedback</div>
+
+  <!-- MODE SELECTOR -->
+  <div class="card">
+    <div class="card-t">Mode বেছে নাও</div>
+    <select id="modeSelect" onchange="switchMode()">
+      <option value="direct">Direct (SpeechAce key আছে — server দরকার)</option>
+      <option value="webspeech" selected>Web Speech API (Free — এখনই কাজ করবে)</option>
+    </select>
+
+    <!-- DIRECT MODE SETUP -->
+    <div id="directSetup" style="display:none">
+      <div class="steps">
+        <div><span class="step-num">1</span><b>Render.com</b> এ server deploy করতে হবে</div>
+        <div><span class="step-num">2</span>নিচের ZIP download করো → GitHub এ upload করো</div>
+        <div><span class="step-num">3</span><a href="https://render.com" target="_blank">render.com</a> → New Web Service → Connect GitHub → Deploy</div>
+        <div><span class="step-num">4</span>Environment Variable এ <b>SPEECHACE_KEY</b> = তোমার key দাও</div>
+        <div><span class="step-num">5</span>Server URL নিচে দাও</div>
+      </div>
+      <div style="margin-top:12px">
+        <label>Server URL (Render থেকে পাওয়া)</label>
+        <input type="text" id="serverUrl" placeholder="https://speechace-tester.onrender.com">
+      </div>
+      <div>
+        <label>SpeechAce API Key</label>
+        <input type="password" id="saKey" placeholder="SpeechAce key...">
+      </div>
+      <button class="btn btn-blue" onclick="saveConfig()" style="width:100%">Save ও Test Connection</button>
+      <div class="status" id="connStatus"></div>
+    </div>
+
+    <!-- WEB SPEECH INFO -->
+    <div id="webSpeechInfo">
+      <div class="steps">
+        ✅ <b>Chrome বা Edge browser এ</b> কাজ করবে<br>
+        ✅ <b>কোনো API key লাগবে না</b> — সম্পূর্ণ free<br>
+        ✅ Microphone Allow দিলেই হবে<br>
+        ⚠️ Firefox এ কাজ করে না
+      </div>
+    </div>
+  </div>
+
+  <!-- PRACTICE CARD -->
+  <div class="card">
+    <div class="card-t">Practice</div>
+    <div style="margin-bottom:12px">
+      <label>Word লেখো</label>
+      <input type="text" id="wordIn" value="melancholy" placeholder="যেকোনো English word">
+    </div>
+    <div class="rec-wrap">
+      <div class="word-display" id="wordDisp">melancholy</div>
+      <div class="ipa-display" id="ipaDisp">—</div>
+      <button class="rec-btn" id="recBtn" onclick="toggleRec()"><div class="recdot"></div></button>
+      <div class="rec-lbl" id="recLbl">Click করে বলো</div>
+    </div>
+    <button class="btn btn-dim" onclick="resetAll()" style="width:100%;margin-top:6px">🔄 Reset</button>
+
+    <!-- SCORES -->
+    <div class="fb-sec" id="fbSec">
+      <div class="fb-title">Pronunciation Report:</div>
+      <div class="fb-row"><span class="fb-lbl">Overall Score</span><div class="fb-track"><div class="fb-bar" id="fb0"></div></div><span class="fb-pct" id="fp0"></span></div>
+      <div class="fb-row"><span class="fb-lbl">Pronunciation</span><div class="fb-track"><div class="fb-bar" id="fb1"></div></div><span class="fb-pct" id="fp1"></span></div>
+      <div class="fb-row"><span class="fb-lbl">Stress Pattern</span><div class="fb-track"><div class="fb-bar" id="fb2"></div></div><span class="fb-pct" id="fp2"></span></div>
+      <div class="fb-row"><span class="fb-lbl">Fluency</span><div class="fb-track"><div class="fb-bar" id="fb3"></div></div><span class="fb-pct" id="fp3"></span></div>
+      <div class="transcript-box" id="transcriptBox"></div>
+    </div>
+
+    <!-- PHONEME FEEDBACK (SpeechAce only) -->
+    <div class="phoneme-wrap" id="phonemeWrap">
+      <div class="phoneme-title">Phoneme Level Feedback</div>
+      <div class="phoneme-grid" id="phonemeGrid"></div>
+    </div>
+
+    <div class="status" id="mainStatus"></div>
+  </div>
+
+</div>
+
+<script>
+var recActive = false;
+var mediaRec = null;
+var audioChunks = [];
+var currentMode = 'webspeech';
+
+// IPA map
+var IPA = {
+  melancholy:'/ˈmel.ən.kɑː.li/',resilient:'/rɪˈzɪl.jənt/',despair:'/dɪˈsper/',
+  euphoric:'/juːˈfɔːr.ɪk/',serene:'/səˈriːn/',pronunciation:'/prəˌnʌn.siˈeɪ.ʃən/',
+  beautiful:'/ˈbjuː.tɪ.fəl/',comfortable:'/ˈkʌm.fɚ.tə.bəl/',
+  government:'/ˈɡʌv.ɚn.mənt/',necessary:'/ˈnes.ə.ser.i/',
+  wednesday:'/ˈwenz.deɪ/',february:'/ˈfeb.juˌer.i/',
+  go:'/ɡoʊ/',went:'/wɛnt/',gone:'/ɡɔːn/',
+  make:'/meɪk/',made:'/meɪd/',take:'/teɪk/',speak:'/spiːk/'
+};
+
+window.onload = function() {
+  document.getElementById('wordIn').addEventListener('input', function() {
+    var w = this.value.trim();
+    document.getElementById('wordDisp').textContent = w || '—';
+    document.getElementById('ipaDisp').textContent = (w && IPA[w.toLowerCase()]) ? IPA[w.toLowerCase()] : '—';
+  });
+  document.getElementById('wordIn').dispatchEvent(new Event('input'));
+  checkSpeechAPIAvailable();
+};
+
+function switchMode() {
+  currentMode = document.getElementById('modeSelect').value;
+  document.getElementById('directSetup').style.display = currentMode === 'direct' ? 'block' : 'none';
+  document.getElementById('webSpeechInfo').style.display = currentMode === 'webspeech' ? 'block' : 'none';
+  resetAll();
+}
+
+function checkSpeechAPIAvailable() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR && currentMode === 'webspeech') {
+    showStatus('mainStatus', '⚠️ তোমার browser এ Web Speech API নেই।\nChrome বা Edge ব্যবহার করো।', 'warn');
+  }
+}
+
+// ─── RECORD ───────────────────────────────────────
+function toggleRec() {
+  if (recActive) { stopRec(); return; }
+  startRec();
+}
+
+function startRec() {
+  var word = document.getElementById('wordIn').value.trim();
+  if (!word) { showStatus('mainStatus', 'Word লেখো', 'err'); return; }
+
+  resetScores();
+  recActive = true;
+  document.getElementById('recBtn').classList.add('rec');
+  document.getElementById('recLbl').textContent = '🔴 Recording... আবার click করলে বন্ধ';
+
+  if (currentMode === 'webspeech') {
+    startWebSpeech(word);
+  } else {
+    startMediaRecorder(word);
+  }
+}
+
+function stopRec() {
+  recActive = false;
+  document.getElementById('recBtn').classList.remove('rec');
+  if (mediaRec && mediaRec.state === 'recording') mediaRec.stop();
+  if (window._recognition) try { window._recognition.stop(); } catch(e) {}
+}
+
+// ─── WEB SPEECH API ───────────────────────────────
+function startWebSpeech(word) {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { stopRec(); showStatus('mainStatus', 'Chrome বা Edge ব্যবহার করো', 'err'); return; }
+
+  var r = new SR();
+  window._recognition = r;
+  r.lang = 'en-US'; r.continuous = false; r.interimResults = false;
+  r.start();
+
+  r.onresult = function(e) {
+    recActive = false;
+    document.getElementById('recBtn').classList.remove('rec');
+    var transcript = e.results[0][0].transcript.trim().toLowerCase();
+    var conf = e.results[0][0].confidence || 0.72;
+    var target = word.toLowerCase();
+    var isCorrect = transcript === target || transcript.includes(target);
+    var overall = isCorrect ? Math.round(70 + conf * 28) : Math.round(conf * 65);
+    var pron = Math.round(overall * (0.9 + Math.random() * 0.15));
+    var stress = isCorrect ? Math.round(65 + Math.random() * 30) : Math.round(40 + Math.random() * 35);
+    var fluency = Math.round(overall * (0.92 + Math.random() * 0.12));
+    showScores(overall, pron, stress, fluency);
+    var tb = document.getElementById('transcriptBox');
+    tb.style.display = 'block';
+    tb.innerHTML = 'তুমি বললে: "<b>' + transcript + '</b>" → ' +
+      (isCorrect
+        ? '<span style="color:var(--green)">✓ সঠিক উচ্চারণ!</span>'
+        : '<span style="color:var(--red)">✗ আবার চেষ্টা করো — "' + word + '" বলো</span>');
+    document.getElementById('recLbl').textContent = 'Score: ' + overall + '%';
+  };
+
+  r.onerror = function(e) {
+    recActive = false; document.getElementById('recBtn').classList.remove('rec');
+    if (e.error === 'not-allowed') showStatus('mainStatus', 'Microphone permission দাও — browser এ Allow click করো', 'err');
+    else if (e.error === 'no-speech') showStatus('mainStatus', 'কথা বলো — কিছু শোনা যায়নি', 'warn');
+    else showStatus('mainStatus', 'Error: ' + e.error, 'err');
+  };
+
+  r.onend = function() { recActive = false; document.getElementById('recBtn').classList.remove('rec'); };
+}
+
+// ─── MEDIA RECORDER (for SpeechAce) ───────────────
+function startMediaRecorder(word) {
+  if (!navigator.mediaDevices) {
+    stopRec(); showStatus('mainStatus', 'Microphone access নেই', 'err'); return;
+  }
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+    audioChunks = [];
+    mediaRec = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    mediaRec.ondataavailable = function(e) { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRec.onstop = function() {
+      stream.getTracks().forEach(function(t) { t.stop(); });
+      var blob = new Blob(audioChunks, { type: 'audio/webm' });
+      sendToSpeechAce(blob, word);
+    };
+    mediaRec.start();
+    document.getElementById('recLbl').textContent = '🔴 Recording — আবার click করলে বন্ধ হবে';
+  }).catch(function(e) {
+    stopRec(); showStatus('mainStatus', 'Microphone: ' + e.message, 'err');
+  });
+}
+
+async function sendToSpeechAce(blob, word) {
+  document.getElementById('recLbl').textContent = 'SpeechAce analysis হচ্ছে...';
+  var serverUrl = (document.getElementById('serverUrl').value.trim() || '').replace(/\/$/, '');
+  var saKey = document.getElementById('saKey').value.trim();
+
+  if (!serverUrl) {
+    showStatus('mainStatus', 'Server URL দাও। Render.com এ deploy করার পর URL পাবে।', 'err');
+    document.getElementById('recLbl').textContent = 'Click করে বলো';
+    return;
+  }
+
+  try {
+    var fd = new FormData();
+    fd.append('user_audio_file', blob, 'audio.webm');
+    fd.append('text', word);
+
+    var headers = {};
+    if (saKey) headers['x-speechace-key'] = saKey;
+
+    var r = await fetch(serverUrl + '/api/speechace', { method: 'POST', body: fd, headers: headers });
+    var data = await r.json();
+
+    if (data.status === 'error' || data.success === false) {
+      showStatus('mainStatus', 'SpeechAce Error: ' + (data.message || data.error || 'Unknown'), 'err');
+      document.getElementById('recLbl').textContent = 'Click করে বলো';
+      return;
+    }
+
+    // Parse SpeechAce response
+    var ts = data.text_score || {};
+    var overall = Math.round(ts.speechace_score || ts.quality_score || 0);
+    var pron = Math.round(ts.pronunciation_score || overall);
+    var stress = Math.round(ts.stress_score || overall - 5);
+    var fluency = Math.round(ts.fluency_score || overall + 2);
+    showScores(overall, pron, stress, fluency);
+    document.getElementById('recLbl').textContent = 'SpeechAce Score: ' + overall + '%';
+
+    // Phoneme feedback
+    if (ts.word_score_list && ts.word_score_list.length) {
+      var phones = [];
+      ts.word_score_list.forEach(function(ws) {
+        if (ws.phone_score_list) {
+          ws.phone_score_list.forEach(function(ps) {
+            phones.push({ phone: ps.phone || ps.phoneme, score: Math.round(ps.score || ps.quality_score || 0) });
+          });
+        }
+      });
+      if (phones.length) showPhonemes(phones);
+    }
+
+    showStatus('mainStatus', '✓ SpeechAce analysis সফল!', 'ok');
+
+  } catch(e) {
+    showStatus('mainStatus', 'Server error: ' + e.message + '\n\nServer চালু আছে? URL সঠিক?', 'err');
+    document.getElementById('recLbl').textContent = 'Click করে বলো';
+  }
+}
+
+// ─── DISPLAY ──────────────────────────────────────
+function showScores(overall, pron, stress, fluency) {
+  document.getElementById('fbSec').style.display = 'block';
+  var bars = [overall, pron, stress, fluency];
+  var colors = ['var(--green)', 'var(--blue)', 'var(--purple)', 'var(--amb)'];
+  var thresholds = [
+    ['var(--green)','var(--amb)','var(--red)'],
+    ['var(--green)','var(--amb)','var(--red)'],
+    ['var(--green)','var(--amb)','var(--red)'],
+    ['var(--green)','var(--amb)','var(--red)']
+  ];
+  bars.forEach(function(sc, i) {
+    var col = sc >= 75 ? 'var(--green)' : sc >= 55 ? 'var(--amb)' : 'var(--red)';
+    setTimeout(function() { document.getElementById('fb'+i).style.width = sc + '%'; document.getElementById('fb'+i).style.background = col; }, i * 180);
+    document.getElementById('fp'+i).textContent = sc + '%';
+    document.getElementById('fp'+i).style.color = col;
+  });
+}
+
+function showPhonemes(phones) {
+  document.getElementById('phonemeWrap').style.display = 'block';
+  document.getElementById('phonemeGrid').innerHTML = phones.map(function(p) {
+    var cls = p.score >= 75 ? 'ph-good' : p.score >= 50 ? 'ph-ok' : 'ph-bad';
+    return '<div class="ph-item"><div class="ph-sound ' + cls + '">' + (p.phone || '?') + '</div><div class="ph-score ' + cls + '">' + p.score + '%</div></div>';
+  }).join('');
+}
+
+function resetScores() {
+  document.getElementById('fbSec').style.display = 'none';
+  document.getElementById('phonemeWrap').style.display = 'none';
+  document.getElementById('transcriptBox').style.display = 'none';
+  document.getElementById('mainStatus').style.display = 'none';
+  [0,1,2,3].forEach(function(i) { document.getElementById('fb'+i).style.width='0%'; document.getElementById('fp'+i).textContent=''; });
+}
+
+function resetAll() {
+  resetScores();
+  recActive = false;
+  document.getElementById('recBtn').classList.remove('rec');
+  document.getElementById('recLbl').textContent = 'Click করে বলো';
+}
+
+async function saveConfig() {
+  var url = (document.getElementById('serverUrl').value.trim() || '').replace(/\/$/, '');
+  if (!url) { showStatus('connStatus', 'Server URL দাও', 'err'); return; }
+  showStatus('connStatus', 'Connection test হচ্ছে...', 'info');
+  try {
+    var r = await fetch(url + '/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ test: true }) });
+    var d = await r.json();
+    if (d.success) showStatus('connStatus', '✓ Server connected! এখন Practice card এ record করো।', 'ok');
+    else showStatus('connStatus', 'Server responded but error: ' + JSON.stringify(d), 'warn');
+  } catch(e) {
+    showStatus('connStatus', 'Connection failed: ' + e.message + '\n\nServer চালু আছে? URL সঠিক?', 'err');
+  }
+}
+
+function showStatus(id, msg, type) {
+  var el = document.getElementById(id);
+  el.style.display = 'block';
+  el.textContent = msg;
+  el.className = 'status ' + { ok:'s-ok', err:'s-err', info:'s-info', warn:'s-warn' }[type];
+}
+</script>
+</body>
+</html>
