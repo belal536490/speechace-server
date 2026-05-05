@@ -19,44 +19,47 @@ function decodeKey(key) {
 
 app.get('/api/health', (req, res) => {
   const decoded = decodeKey(process.env.SPEECHACE_KEY || '');
-  res.json({ status: 'ok', key_set: !!decoded, key_length: decoded.length });
+  res.json({ status: 'ok', key_set: !!decoded, key_length: decoded.length, key_preview: decoded.substring(0,15)+'...' });
 });
 
 app.post('/api/speechace', upload.single('user_audio_file'), async (req, res) => {
+  // Decode key fully
   const saKey = decodeKey(process.env.SPEECHACE_KEY || req.headers['x-speechace-key'] || '');
-  console.log('Key length:', saKey.length);
+  const text = (req.body.text || 'hello').trim();
 
+  console.log('Key length:', saKey.length, '| Text:', text);
   if (!saKey) return res.json({ status: 'error', message: 'SPEECHACE_KEY not set' });
   if (!req.file) return res.json({ status: 'error', message: 'No audio file received' });
-
-  const text = (req.body.text || 'hello').trim();
-  console.log('Text:', text, '| Audio size:', req.file.size, 'bytes | Type:', req.file.mimetype);
+  console.log('Audio:', req.file.size, 'bytes |', req.file.mimetype);
 
   try {
+    // Build form — key in URL (per docs), audio + text in form
     const fd = new FormData();
-    // Key in form data (Method 3 worked)
-    fd.append('key', saKey);
     fd.append('text', text);
-    fd.append('question_info', 'u1/q1');
-    fd.append('include_unknown_words', '0');
-    // Audio file — try wav format
     fd.append('user_audio_file', req.file.buffer, {
-      filename: 'recording.wav',
-      contentType: 'audio/wav',
+      filename: 'audio.webm',
+      contentType: req.file.mimetype || 'audio/webm',
       knownLength: req.file.size
     });
 
-    const url = 'https://api5.speechace.com/api/scoring/text/v9/json?dialect=en-us&user_id=user1';
-    console.log('Calling:', url);
+    // Key must be URL-encoded in query string (docs: key={{speechacekey}})
+    const encodedKey = encodeURIComponent(saKey);
+    const url = `https://api.speechace.co/api/scoring/text/v9/json?key=${encodedKey}&dialect=en-us&user_id=user1`;
+    console.log('URL (first 80):', url.substring(0, 80));
 
-    const r = await fetch(url, { method: 'POST', body: fd, headers: fd.getHeaders() });
+    const r = await fetch(url, {
+      method: 'POST',
+      body: fd,
+      headers: fd.getHeaders()
+    });
+
     const raw = await r.text();
-    console.log('Response:', raw.substring(0, 300));
+    console.log('SpeechAce response:', raw.substring(0, 300));
 
     let data;
-    try { data = JSON.parse(raw); } catch(e) {
-      return res.json({ status: 'error', message: 'Non-JSON response: ' + raw.substring(0, 100) });
-    }
+    try { data = JSON.parse(raw); }
+    catch(e) { return res.json({ status: 'error', message: 'Non-JSON: ' + raw.substring(0,100) }); }
+
     res.json(data);
   } catch(e) {
     console.error('Error:', e.message);
