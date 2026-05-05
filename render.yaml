@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: speechace-tester
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: SPEECHACE_KEY
+        sync: false
